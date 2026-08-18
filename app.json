@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "FieldOps",
+    "slug": "fieldops",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "fieldops",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0F766E"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "FieldOps uses your location to show nearby tasks."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "FieldOps uses photos to attach work evidence to tasks."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "FieldOps uses the camera to attach work evidence to tasks."
+        }
+      ],
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
