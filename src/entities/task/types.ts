@@ -48,3 +48,22 @@ export interface CreateTaskPayload {
   status: TaskStatus;
   dueDate: string;
 }
+
+export type TaskRealtimeSource = 'remote' | 'local' | 'sync';
+
+export type TaskRealtimeEvent =
+  | {
+      type: 'task.status_changed';
+      task: Task;
+      source: TaskRealtimeSource;
+    }
+  | {
+      type: 'task.created';
+      task: Task;
+      source: TaskRealtimeSource;
+    }
+  | {
+      type: 'task.updated';
+      task: Task;
+      source: TaskRealtimeSource;
+    };

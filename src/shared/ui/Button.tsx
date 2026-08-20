@@ -1,4 +1,4 @@
-import { colors } from './theme';
+import { useTheme } from './theme';
 import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 
 interface ButtonProps {
@@ -11,6 +11,8 @@ interface ButtonProps {
 }
 
 export function Button({ title, onPress, variant = 'primary', disabled, loading, style }: ButtonProps) {
+  const { colors } = useTheme();
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -18,12 +20,18 @@ export function Button({ title, onPress, variant = 'primary', disabled, loading,
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
-        styles[variant],
+        variant === 'primary' && { backgroundColor: colors.primary },
+        variant === 'secondary' && { backgroundColor: colors.surfaceMuted },
+        variant === 'danger' && { backgroundColor: colors.danger },
         (pressed || disabled) && styles.muted,
         style
       ]}
     >
-      {loading ? <ActivityIndicator color={variant === 'secondary' ? colors.primary : '#FFFFFF'} /> : <Text style={[styles.text, variant === 'secondary' && styles.secondaryText]}>{title}</Text>}
+      {loading ? (
+        <ActivityIndicator color={variant === 'secondary' ? colors.primary : '#FFFFFF'} />
+      ) : (
+        <Text style={[styles.text, variant === 'secondary' && { color: colors.primaryDark }]}>{title}</Text>
+      )}
     </Pressable>
   );
 }
@@ -36,15 +44,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16
   },
-  primary: {
-    backgroundColor: colors.primary
-  },
-  secondary: {
-    backgroundColor: colors.surfaceMuted
-  },
-  danger: {
-    backgroundColor: colors.danger
-  },
   muted: {
     opacity: 0.72
   },
@@ -52,8 +51,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700'
-  },
-  secondaryText: {
-    color: colors.primaryDark
   }
 });

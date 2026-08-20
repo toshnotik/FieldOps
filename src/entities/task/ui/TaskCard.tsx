@@ -1,16 +1,28 @@
 import { taskPriorityColors, taskPriorityLabels, taskStatusColors, taskStatusLabels } from '@/entities/task/labels';
 import { Task } from '@/entities/task/types';
 import { formatTaskDate } from '@/shared/lib/date';
-import { colors } from '@/shared/ui/theme';
+import { useTheme } from '@/shared/ui/theme';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 export function TaskCard({ task, onPress }: { task: Task; onPress: () => void }) {
+  const { colors } = useTheme();
+
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border
+        },
+        pressed && styles.pressed
+      ]}
+    >
       <View style={styles.header}>
         <View style={styles.titleWrap}>
-          <Text style={styles.title}>{task.title}</Text>
-          <Text style={styles.address}>{task.address}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{task.title}</Text>
+          <Text style={[styles.address, { color: colors.textMuted }]}>{task.address}</Text>
         </View>
         <View style={[styles.statusDot, { backgroundColor: taskStatusColors[task.status] }]} />
       </View>
@@ -24,16 +36,14 @@ export function TaskCard({ task, onPress }: { task: Task; onPress: () => void })
         </Text>
       </View>
 
-      <Text style={styles.date}>{formatTaskDate(task.dueDate)}</Text>
+      <Text style={[styles.date, { color: colors.text }]}>{formatTaskDate(task.dueDate)}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: 8,
     padding: 16,
     gap: 12
@@ -51,12 +61,10 @@ const styles = StyleSheet.create({
     gap: 4
   },
   title: {
-    color: colors.text,
     fontSize: 18,
     fontWeight: '800'
   },
   address: {
-    color: colors.textMuted,
     fontSize: 14
   },
   statusDot: {
@@ -75,7 +83,6 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   date: {
-    color: colors.text,
     fontSize: 15,
     fontWeight: '600'
   }

@@ -2,21 +2,28 @@ import { taskPriorityLabels, taskStatusColors, taskStatusLabels } from '@/entiti
 import { Task, TaskStatus } from '@/entities/task/types';
 import { useChangeTaskStatus } from '@/features/change-task-status/useChangeTaskStatus';
 import { useUploadPhoto } from '@/features/upload-photo/useUploadPhoto';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { enqueueTaskOfflineOperation } from '@/features/offline/offlineQueue';
 import { apiClient } from '@/shared/api/client';
 import { formatTaskDate } from '@/shared/lib/date';
+import { updateTaskInQueryCache } from '@/shared/lib/taskCache';
 import { Button } from '@/shared/ui/Button';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { Input } from '@/shared/ui/Input';
 import { Screen } from '@/shared/ui/Screen';
-import { colors } from '@/shared/ui/theme';
+import { useTheme } from '@/shared/ui/theme';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useAuth } from '@/providers/AuthProvider';
 
 export default function TaskDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [comment, setComment] = useState('');
+  const { colors } = useTheme();
+  const { isOnline, refreshQueueCount } = useNetwork();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const taskQuery = useQuery({
     queryKey: ['task', id],
@@ -25,11 +32,37 @@ export default function TaskDetailsScreen() {
   const statusMutation = useChangeTaskStatus(id);
   const photoMutation = useUploadPhoto(id);
   const commentMutation = useMutation({
-    mutationFn: (text: string) => apiClient.tasks.addComment(id, text),
+    mutationFn: async (text: string) => {
+      if (!isOnline) {
+        const task = (queryClient.getQueryData(['task', id]) as Task | undefined) ?? (await apiClient.tasks.getTask(id));
+        const optimisticTask = {
+          ...task,
+          comments: [
+            {
+              id: `offline-comment-${Date.now()}`,
+              author: user ?? task.assignee,
+              text,
+              createdAt: new Date().toISOString()
+            },
+            ...task.comments
+          ]
+        };
+
+        await enqueueTaskOfflineOperation({
+          type: 'task.addComment',
+          taskId: id,
+          text
+        });
+        await refreshQueueCount();
+
+        return optimisticTask;
+      }
+
+      return apiClient.tasks.addComment(id, text);
+    },
     onSuccess: (task) => {
       setComment('');
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.setQueryData(['task', id], task);
+      updateTaskInQueryCache(queryClient, task);
     }
   });
 
@@ -65,11 +98,11 @@ export default function TaskDetailsScreen() {
   return (
     <Screen scroll style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.title}>{task.title}</Text>
-        <Text style={styles.description}>{task.description}</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{task.title}</Text>
+        <Text style={[styles.description, { color: colors.textMuted }]}>{task.description}</Text>
       </View>
 
-      <View style={styles.info}>
+      <View style={[styles.info, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Info label="Адрес" value={task.address} />
         <Info label="Координаты" value={`${task.latitude.toFixed(5)}, ${task.longitude.toFixed(5)}`} />
         <Info label="Исполнитель" value={`${task.assignee.name}, ${task.assignee.role}`} />
@@ -79,6 +112,7 @@ export default function TaskDetailsScreen() {
       </View>
 
       <View style={styles.actions}>
+        {!isOnline ? <Text style={[styles.offlineHint, { color: colors.warning }]}>Офлайн: статусы и комментарии сохранятся в очередь.</Text> : null}
         <Button title="Начать работу" onPress={() => changeStatus('in_progress')} disabled={task.status === 'in_progress'} loading={statusMutation.isPending} />
         <Button title="Завершить" onPress={() => changeStatus('done')} disabled={task.status === 'done'} loading={statusMutation.isPending} />
         <Button title="Добавить фото" variant="secondary" onPress={() => photoMutation.mutate()} loading={photoMutation.isPending} />
@@ -86,7 +120,7 @@ export default function TaskDetailsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Фотографии</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Фотографии</Text>
         {task.images.length ? (
           <View style={styles.images}>
             {task.images.map((uri) => (
@@ -94,12 +128,12 @@ export default function TaskDetailsScreen() {
             ))}
           </View>
         ) : (
-          <Text style={styles.muted}>Фото пока не добавлены.</Text>
+          <Text style={[styles.muted, { color: colors.textMuted }]}>Фото пока не добавлены.</Text>
         )}
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Комментарии</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Комментарии</Text>
         <View style={styles.commentForm}>
           <Input label="Комментарий" value={comment} onChangeText={setComment} placeholder="Что важно знать по задаче" />
           <Button
@@ -111,13 +145,13 @@ export default function TaskDetailsScreen() {
         </View>
         <View style={styles.comments}>
           {task.comments.map((item) => (
-            <View key={item.id} style={styles.comment}>
-              <Text style={styles.commentAuthor}>{item.author.name}</Text>
-              <Text style={styles.commentText}>{item.text}</Text>
-              <Text style={styles.commentDate}>{formatTaskDate(item.createdAt)}</Text>
+            <View key={item.id} style={[styles.comment, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.commentAuthor, { color: colors.text }]}>{item.author.name}</Text>
+              <Text style={[styles.commentText, { color: colors.text }]}>{item.text}</Text>
+              <Text style={[styles.commentDate, { color: colors.textMuted }]}>{formatTaskDate(item.createdAt)}</Text>
             </View>
           ))}
-          {!task.comments.length ? <Text style={styles.muted}>Комментариев пока нет.</Text> : null}
+          {!task.comments.length ? <Text style={[styles.muted, { color: colors.textMuted }]}>Комментариев пока нет.</Text> : null}
         </View>
       </View>
     </Screen>
@@ -125,10 +159,12 @@ export default function TaskDetailsScreen() {
 }
 
 function Info({ label, value, color }: { label: string; value: string; color?: string }) {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={[styles.infoValue, color ? { color } : null]}>{value}</Text>
+    <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+      <Text style={[styles.infoLabel, { color: colors.textMuted }]}>{label}</Text>
+      <Text style={[styles.infoValue, { color: colors.text }, color ? { color } : null]}>{value}</Text>
     </View>
   );
 }
@@ -145,45 +181,40 @@ const styles = StyleSheet.create({
     gap: 10
   },
   title: {
-    color: colors.text,
     fontSize: 28,
     fontWeight: '900'
   },
   description: {
-    color: colors.textMuted,
     fontSize: 16,
     lineHeight: 24
   },
   info: {
-    backgroundColor: colors.surface,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border
+    borderWidth: 1
   },
   infoRow: {
     padding: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
     gap: 4
   },
   infoLabel: {
-    color: colors.textMuted,
     fontSize: 13,
     fontWeight: '700'
   },
   infoValue: {
-    color: colors.text,
     fontSize: 16,
     fontWeight: '700'
   },
   actions: {
     gap: 10
   },
+  offlineHint: {
+    fontWeight: '800'
+  },
   section: {
     gap: 12
   },
   sectionTitle: {
-    color: colors.text,
     fontSize: 20,
     fontWeight: '900'
   },
@@ -196,10 +227,9 @@ const styles = StyleSheet.create({
     width: 104,
     height: 104,
     borderRadius: 8,
-    backgroundColor: colors.surfaceMuted
+    backgroundColor: '#D7DEE8'
   },
   muted: {
-    color: colors.textMuted,
     fontSize: 15
   },
   commentForm: {
@@ -212,20 +242,15 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
     gap: 6
   },
   commentAuthor: {
-    color: colors.text,
     fontWeight: '800'
   },
   commentText: {
-    color: colors.text,
     lineHeight: 20
   },
   commentDate: {
-    color: colors.textMuted,
     fontSize: 12
   }
 });

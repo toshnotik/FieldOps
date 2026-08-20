@@ -1,6 +1,9 @@
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
+import { NetworkProvider } from '@/providers/NetworkProvider';
+import { NotificationsProvider } from '@/providers/NotificationsProvider';
 import { AppQueryProvider } from '@/providers/QueryProvider';
-import { colors } from '@/shared/ui/theme';
+import { RealtimeProvider } from '@/providers/RealtimeProvider';
+import { useTheme } from '@/shared/ui/theme';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -9,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 
 function RootNavigator() {
   const { token, isBootstrapping } = useAuth();
+  const { colors } = useTheme();
   const segments = useSegments();
   const router = useRouter();
   const inAuthGroup = segments[0] === '(auth)';
@@ -51,8 +55,14 @@ export default function Layout() {
     <SafeAreaProvider>
       <AppQueryProvider>
         <AuthProvider>
-          <StatusBar style="dark" />
-          <RootNavigator />
+          <NetworkProvider>
+            <NotificationsProvider>
+              <RealtimeProvider>
+                <StatusBar style="auto" />
+                <RootNavigator />
+              </RealtimeProvider>
+            </NotificationsProvider>
+          </NetworkProvider>
         </AuthProvider>
       </AppQueryProvider>
     </SafeAreaProvider>

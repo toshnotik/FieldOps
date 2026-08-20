@@ -2,9 +2,10 @@ import { taskPriorityLabels, taskStatusLabels } from '@/entities/task/labels';
 import { TaskPriority, TaskStatus } from '@/entities/task/types';
 import { TaskCard } from '@/entities/task/ui/TaskCard';
 import { apiClient } from '@/shared/api/client';
+import { useNetwork } from '@/providers/NetworkProvider';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { Input } from '@/shared/ui/Input';
-import { colors } from '@/shared/ui/theme';
+import { useTheme } from '@/shared/ui/theme';
 import { useAppStore } from '@/store/appStore';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
@@ -16,6 +17,8 @@ const priorities: Array<TaskPriority | 'all'> = ['all', 'low', 'medium', 'high']
 export default function TasksScreen() {
   const filters = useAppStore((state) => state.taskFilters);
   const setTaskFilters = useAppStore((state) => state.setTaskFilters);
+  const { isOnline, pendingOperations } = useNetwork();
+  const { colors } = useTheme();
 
   const query = useInfiniteQuery({
     queryKey: ['tasks', filters],
@@ -27,8 +30,19 @@ export default function TasksScreen() {
   const tasks = query.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.filters}>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <View style={[styles.filters, { backgroundColor: colors.background }]}>
+        <View
+          style={[
+            styles.networkBanner,
+            { backgroundColor: isOnline ? colors.onlineBanner : colors.offlineBanner }
+          ]}
+        >
+          <Text style={[styles.networkText, { color: colors.text }]}>
+            {isOnline ? 'Онлайн: статусы обновляются в реальном времени' : 'Офлайн: изменения будут синхронизированы позже'}
+          </Text>
+          {pendingOperations ? <Text style={[styles.networkCount, { backgroundColor: colors.warning }]}>{pendingOperations}</Text> : null}
+        </View>
         <Input
           label="Поиск"
           placeholder="Название, адрес или описание"
@@ -36,7 +50,7 @@ export default function TasksScreen() {
           onChangeText={(search) => setTaskFilters({ search })}
         />
         <View style={styles.filterBlock}>
-          <Text style={styles.filterLabel}>Статус</Text>
+          <Text style={[styles.filterLabel, { color: colors.text }]}>Статус</Text>
           <View style={styles.chips}>
             {statuses.map((status) => (
               <Chip
@@ -49,7 +63,7 @@ export default function TasksScreen() {
           </View>
         </View>
         <View style={styles.filterBlock}>
-          <Text style={styles.filterLabel}>Приоритет</Text>
+          <Text style={[styles.filterLabel, { color: colors.text }]}>Приоритет</Text>
           <View style={styles.chips}>
             {priorities.map((priority) => (
               <Chip
@@ -78,14 +92,14 @@ export default function TasksScreen() {
           ListFooterComponent={
             query.hasNextPage ? (
               <Pressable style={styles.loadMore} onPress={() => query.fetchNextPage()}>
-                {query.isFetchingNextPage ? <ActivityIndicator color={colors.primary} /> : <Text style={styles.loadMoreText}>Загрузить еще</Text>}
+                {query.isFetchingNextPage ? <ActivityIndicator color={colors.primary} /> : <Text style={[styles.loadMoreText, { color: colors.primary }]}>Загрузить еще</Text>}
               </Pressable>
             ) : null
           }
         />
       )}
 
-      <Pressable style={styles.fab} onPress={() => router.push('/task/create')}>
+      <Pressable style={[styles.fab, { backgroundColor: colors.primary }]} onPress={() => router.push('/task/create')}>
         <Text style={styles.fabText}>+</Text>
       </Pressable>
     </View>
@@ -93,9 +107,18 @@ export default function TasksScreen() {
 }
 
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const { colors } = useTheme();
+
   return (
-    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.chip,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+        active && { backgroundColor: colors.primary, borderColor: colors.primary }
+      ]}
+    >
+      <Text style={[styles.chipText, { color: active ? '#FFFFFF' : colors.text }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -103,18 +126,15 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.background
   },
   filters: {
     padding: 16,
     gap: 12,
-    backgroundColor: colors.background
   },
   filterBlock: {
     gap: 8
   },
   filterLabel: {
-    color: colors.text,
     fontWeight: '800'
   },
   chips: {
@@ -124,22 +144,12 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: colors.surface
-  },
-  chipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary
+    paddingVertical: 8
   },
   chipText: {
-    color: colors.text,
     fontWeight: '700'
-  },
-  chipTextActive: {
-    color: '#FFFFFF'
   },
   loader: {
     marginTop: 48
@@ -155,8 +165,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   loadMoreText: {
-    color: colors.primary,
     fontWeight: '800'
+  },
+  networkBanner: {
+    minHeight: 40,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  networkText: {
+    flex: 1,
+    fontWeight: '700'
+  },
+  networkCount: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    overflow: 'hidden',
+    textAlign: 'center',
+    lineHeight: 24,
+    color: '#FFFFFF',
+    fontWeight: '900'
   },
   fab: {
     position: 'absolute',
@@ -166,8 +199,7 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary
+    justifyContent: 'center'
   },
   fabText: {
     color: '#FFFFFF',

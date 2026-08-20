@@ -1,9 +1,12 @@
-import { CreateTaskPayload, Task, TaskFilters, TaskListResponse, TaskStatus } from '@/entities/task/types';
+import { CreateTaskPayload, Task, TaskFilters, TaskListResponse, TaskRealtimeEvent, TaskStatus } from '@/entities/task/types';
 import { currentUser, initialTasks } from './mockData';
 import { sleep } from '@/shared/lib/sleep';
+import { taskRealtime } from './realtime';
 
 let accessToken: string | null = null;
 let tasks: Task[] = [...initialTasks];
+const statuses: TaskStatus[] = ['new', 'in_progress', 'done'];
+type LocalTaskSource = Exclude<TaskRealtimeEvent['source'], 'remote'>;
 
 function ensureAuth() {
   if (!accessToken) {
@@ -102,15 +105,18 @@ export const apiClient = {
       };
 
       tasks = [task, ...tasks];
+      taskRealtime.emit({ type: 'task.created', task, source: 'local' });
       return task;
     },
 
-    async updateStatus(id: string, status: TaskStatus) {
+    async updateStatus(id: string, status: TaskStatus, options: { source?: LocalTaskSource } = {}) {
       await sleep(300);
       ensureAuth();
 
       tasks = tasks.map((task) => (task.id === id ? { ...task, status } : task));
-      return tasks.find((task) => task.id === id)!;
+      const task = tasks.find((task) => task.id === id)!;
+      taskRealtime.emit({ type: 'task.status_changed', task, source: options.source ?? 'local' });
+      return task;
     },
 
     async addImage(id: string, uri: string) {
@@ -118,10 +124,12 @@ export const apiClient = {
       ensureAuth();
 
       tasks = tasks.map((task) => (task.id === id ? { ...task, images: [uri, ...task.images] } : task));
-      return tasks.find((task) => task.id === id)!;
+      const task = tasks.find((task) => task.id === id)!;
+      taskRealtime.emit({ type: 'task.updated', task, source: 'local' });
+      return task;
     },
 
-    async addComment(id: string, text: string) {
+    async addComment(id: string, text: string, options: { source?: LocalTaskSource } = {}) {
       await sleep(300);
       ensureAuth();
 
@@ -142,7 +150,30 @@ export const apiClient = {
           : task
       );
 
-      return tasks.find((task) => task.id === id)!;
+      const task = tasks.find((task) => task.id === id)!;
+      taskRealtime.emit({ type: 'task.updated', task, source: options.source ?? 'local' });
+      return task;
+    },
+
+    simulateRemoteStatusChange() {
+      const candidates = tasks.filter((task) => task.status !== 'done');
+
+      if (!candidates.length) {
+        return null;
+      }
+
+      const task = candidates[Math.floor(Math.random() * candidates.length)];
+      const currentIndex = statuses.indexOf(task.status);
+      const nextStatus = statuses[Math.min(currentIndex + 1, statuses.length - 1)];
+
+      tasks = tasks.map((item) => (item.id === task.id ? { ...item, status: nextStatus } : item));
+      const updated = tasks.find((item) => item.id === task.id)!;
+
+      return {
+        type: 'task.status_changed' as const,
+        task: updated,
+        source: 'remote' as const
+      };
     }
   }
 };

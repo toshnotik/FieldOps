@@ -38,6 +38,7 @@
           "cameraPermission": "FieldOps uses the camera to attach work evidence to tasks."
         }
       ],
+      "expo-notifications",
       "expo-font"
     ],
     "experiments": {

@@ -4,7 +4,7 @@ import { Task } from '@/entities/task/types';
 import { apiClient } from '@/shared/api/client';
 import { Button } from '@/shared/ui/Button';
 import { Screen } from '@/shared/ui/Screen';
-import { colors } from '@/shared/ui/theme';
+import { useTheme } from '@/shared/ui/theme';
 import { useAppStore } from '@/store/appStore';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
@@ -12,8 +12,8 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
-  const theme = useAppStore((state) => state.theme);
   const toggleTheme = useAppStore((state) => state.toggleTheme);
+  const { colors, theme } = useTheme();
   const queryClient = useQueryClient();
   const tasksQuery = useQuery({
     queryKey: ['tasks', 'profileStats'],
@@ -33,14 +33,14 @@ export default function ProfileScreen() {
 
   return (
     <Screen scroll style={styles.screen}>
-      <View style={styles.profile}>
-        <View style={styles.avatar}>
+      <View style={[styles.profile, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
           <Text style={styles.avatarText}>{user?.name.slice(0, 1) ?? 'F'}</Text>
         </View>
         <View style={styles.profileText}>
-          <Text style={styles.name}>{user?.name}</Text>
-          <Text style={styles.meta}>{user?.role}</Text>
-          <Text style={styles.meta}>{user?.email}</Text>
+          <Text style={[styles.name, { color: colors.text }]}>{user?.name}</Text>
+          <Text style={[styles.meta, { color: colors.textMuted }]}>{user?.role}</Text>
+          <Text style={[styles.meta, { color: colors.textMuted }]}>{user?.email}</Text>
         </View>
       </View>
 
@@ -50,10 +50,10 @@ export default function ProfileScreen() {
         <Stat label={taskStatusLabels.new} value={newTasks} />
       </View>
 
-      <View style={styles.setting}>
+      <View style={[styles.setting, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View>
-          <Text style={styles.settingTitle}>Темная тема</Text>
-          <Text style={styles.settingText}>Локальное состояние Zustand</Text>
+          <Text style={[styles.settingTitle, { color: colors.text }]}>Темная тема</Text>
+          <Text style={[styles.settingText, { color: colors.textMuted }]}>Локальное состояние Zustand</Text>
         </View>
         <Switch value={theme === 'dark'} onValueChange={toggleTheme} trackColor={{ true: colors.primary, false: colors.border }} />
       </View>
@@ -64,10 +64,12 @@ export default function ProfileScreen() {
 }
 
 function Stat({ label, value }: { label: string; value: number }) {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <View style={[styles.stat, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: colors.textMuted }]}>{label}</Text>
     </View>
   );
 }
@@ -82,17 +84,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface
+    borderWidth: 1
   },
   avatar: {
     width: 64,
     height: 64,
     borderRadius: 32,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary
+    justifyContent: 'center'
   },
   avatarText: {
     color: '#FFFFFF',
@@ -104,12 +103,10 @@ const styles = StyleSheet.create({
     gap: 4
   },
   name: {
-    color: colors.text,
     fontSize: 20,
     fontWeight: '900'
   },
   meta: {
-    color: colors.textMuted,
     fontSize: 14
   },
   stats: {
@@ -121,17 +118,13 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
     gap: 4
   },
   statValue: {
-    color: colors.text,
     fontSize: 28,
     fontWeight: '900'
   },
   statLabel: {
-    color: colors.textMuted,
     fontWeight: '700'
   },
   setting: {
@@ -141,17 +134,13 @@ const styles = StyleSheet.create({
     gap: 14,
     padding: 16,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface
+    borderWidth: 1
   },
   settingTitle: {
-    color: colors.text,
     fontSize: 16,
     fontWeight: '900'
   },
   settingText: {
-    color: colors.textMuted,
     marginTop: 4
   }
 });
