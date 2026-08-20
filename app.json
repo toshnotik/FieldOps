@@ -4,6 +4,7 @@
     "slug": "fieldops",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "fieldops",
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": [
@@ -14,8 +15,12 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F766E"
       }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
