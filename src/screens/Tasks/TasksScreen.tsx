@@ -11,8 +11,8 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
-const statuses: Array<TaskStatus | 'all'> = ['all', 'new', 'in_progress', 'done'];
-const priorities: Array<TaskPriority | 'all'> = ['all', 'low', 'medium', 'high'];
+const statuses: (TaskStatus | 'all')[] = ['all', 'new', 'in_progress', 'done'];
+const priorities: (TaskPriority | 'all')[] = ['all', 'low', 'medium', 'high'];
 
 export default function TasksScreen() {
   const filters = useAppStore((state) => state.taskFilters);
@@ -57,6 +57,7 @@ export default function TasksScreen() {
                 key={status}
                 active={filters.status === status}
                 label={status === 'all' ? 'Все' : taskStatusLabels[status]}
+                accessibilityLabel={`Фильтр статуса: ${status === 'all' ? 'Все' : taskStatusLabels[status]}`}
                 onPress={() => setTaskFilters({ status })}
               />
             ))}
@@ -70,6 +71,7 @@ export default function TasksScreen() {
                 key={priority}
                 active={filters.priority === priority}
                 label={priority === 'all' ? 'Все' : taskPriorityLabels[priority]}
+                accessibilityLabel={`Фильтр приоритета: ${priority === 'all' ? 'Все' : taskPriorityLabels[priority]}`}
                 onPress={() => setTaskFilters({ priority })}
               />
             ))}
@@ -106,11 +108,14 @@ export default function TasksScreen() {
   );
 }
 
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function Chip({ label, accessibilityLabel, active, onPress }: { label: string; accessibilityLabel: string; active: boolean; onPress: () => void }) {
   const { colors } = useTheme();
 
   return (
     <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
       onPress={onPress}
       style={[
         styles.chip,

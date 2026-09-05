@@ -1,6 +1,8 @@
 import { Task } from '@/entities/task/types';
 import { initialTasks } from '@/shared/api/mockData';
 import { apiClient } from '@/shared/api/client';
+import { getOfflineQueue } from '@/features/offline/offlineQueue';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { PropsWithChildren } from 'react';
@@ -25,9 +27,10 @@ function createWrapper(queryClient: QueryClient) {
 describe('TaskStatus', () => {
   let queryClient: QueryClient;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockIsOnline = true;
     mockRefreshQueueCount.mockReset();
+    await AsyncStorage.clear();
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { gcTime: Infinity },
@@ -73,5 +76,8 @@ describe('TaskStatus', () => {
 
     expect(updateStatus).not.toHaveBeenCalled();
     expect(mockRefreshQueueCount).toHaveBeenCalledTimes(1);
+    await expect(getOfflineQueue()).resolves.toEqual([
+      expect.objectContaining({ taskId: task.id, status: 'done', type: 'task.updateStatus' })
+    ]);
   });
 });

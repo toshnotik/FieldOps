@@ -29,10 +29,10 @@ describe('LoginForm', () => {
   });
 
   it('shows validation errors for invalid credentials', async () => {
-    const { getByDisplayValue, getByText } = render(<LoginScreen />);
+    const { getByLabelText, getByText } = render(<LoginScreen />);
 
-    fireEvent.changeText(getByDisplayValue('tech@fieldops.local'), 'bad-email');
-    fireEvent.changeText(getByDisplayValue('123456'), '123');
+    fireEvent.changeText(getByLabelText('Email'), 'bad-email');
+    fireEvent.changeText(getByLabelText('Пароль'), '123');
     fireEvent.press(getByText('Войти'));
 
     await waitFor(() => expect(getByText('Введите корректный email')).toBeTruthy());
@@ -48,11 +48,12 @@ describe('LoginForm', () => {
           resolveSignIn = resolve;
         })
     );
-    const { getByText, queryByText } = render(<LoginScreen />);
+    const { getByRole, getByText, queryByText } = render(<LoginScreen />);
 
     fireEvent.press(getByText('Войти'));
 
     await waitFor(() => expect(queryByText('Войти')).toBeNull());
+    expect(getByRole('button', { busy: true })).toBeTruthy();
 
     resolveSignIn();
 

@@ -9,6 +9,8 @@ export function TaskCard({ task, onPress }: { task: Task; onPress: () => void })
 
   return (
     <Pressable
+      accessibilityLabel={`${task.title}. ${task.address}. Статус: ${taskStatusLabels[task.status]}. Приоритет: ${taskPriorityLabels[task.priority]}`}
+      accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,

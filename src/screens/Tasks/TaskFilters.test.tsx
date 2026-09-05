@@ -51,19 +51,19 @@ describe('TaskFilters', () => {
   });
 
   it('renders task data and applies status filter on press', async () => {
-    const { getByText } = renderWithQueryClient();
+    const { getByLabelText, getByText } = renderWithQueryClient();
 
     await waitFor(() => expect(getByText('Ремонт оборудования')).toBeTruthy());
+    expect(getByLabelText('Фильтр статуса: Все')).toBeTruthy();
 
     await act(async () => {
-      fireEvent.press(getByText('Готово'));
+      fireEvent.press(getByLabelText('Фильтр статуса: Готово'));
+      await waitFor(() =>
+        expect(apiClient.tasks.getTasks).toHaveBeenLastCalledWith(
+          expect.objectContaining({ status: 'done' }),
+          1
+        )
+      );
     });
-
-    await waitFor(() =>
-      expect(apiClient.tasks.getTasks).toHaveBeenLastCalledWith(
-        expect.objectContaining({ status: 'done' }),
-        1
-      )
-    );
   });
 });

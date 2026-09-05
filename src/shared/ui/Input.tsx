@@ -13,6 +13,7 @@ export function Input({ label, error, style, ...props }: InputProps) {
     <View style={styles.wrap}>
       <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
       <TextInput
+        accessibilityLabel={label}
         placeholderTextColor={colors.textMuted}
         style={[
           styles.input,

@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { clearOfflineQueue, enqueueOfflineOperation, getOfflineQueue, processOfflineQueue } from './offlineQueue';
+import { clearOfflineQueue, enqueueOfflineOperation, enqueueTaskOfflineOperation, getOfflineQueue, processOfflineQueue } from './offlineQueue';
 
 describe('offlineQueue', () => {
   beforeEach(async () => {
@@ -60,7 +60,28 @@ describe('offlineQueue', () => {
       })
     ]);
 
-    await expect(getOfflineQueue()).resolves.toHaveLength(2);
+    await expect(getOfflineQueue()).resolves.toEqual([
+      expect.objectContaining({ id: 'op-1', taskId: 'task-1', status: 'in_progress' }),
+      expect.objectContaining({ id: 'op-2', taskId: 'task-2', status: 'done' })
+    ]);
+  });
+
+  it('creates offline task operations with generated metadata', async () => {
+    await enqueueTaskOfflineOperation({
+      type: 'task.addComment',
+      taskId: 'task-1',
+      text: 'Оставлено без сети'
+    });
+
+    await expect(getOfflineQueue()).resolves.toEqual([
+      expect.objectContaining({
+        id: expect.stringMatching(/^offline-/),
+        type: 'task.addComment',
+        taskId: 'task-1',
+        text: 'Оставлено без сети',
+        createdAt: expect.any(String)
+      })
+    ]);
   });
 
   it('preserves the first failed operation and unprocessed tail during sync', async () => {

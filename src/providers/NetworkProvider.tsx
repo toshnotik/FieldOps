@@ -2,7 +2,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { useAuth } from '@/providers/AuthProvider';
 import { apiClient } from '@/shared/api/client';
 import { getOfflineQueue, processOfflineQueue } from '@/features/offline/offlineQueue';
-import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface NetworkContextValue {
@@ -20,11 +20,11 @@ export function NetworkProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
   const { isBootstrapping, token } = useAuth();
 
-  async function refreshQueueCount() {
+  const refreshQueueCount = useCallback(async () => {
     setPendingOperations((await getOfflineQueue()).length);
-  }
+  }, []);
 
-  async function syncPendingOperations() {
+  const syncPendingOperations = useCallback(async () => {
     if (!isOnline || isBootstrapping || !token) {
       return;
     }
@@ -48,7 +48,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
     if (result.processed > 0) {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     }
-  }
+  }, [isBootstrapping, isOnline, queryClient, refreshQueueCount, token]);
 
   useEffect(() => {
     refreshQueueCount();
@@ -59,13 +59,13 @@ export function NetworkProvider({ children }: PropsWithChildren) {
     });
 
     return unsubscribe;
-  }, []);
+  }, [refreshQueueCount]);
 
   useEffect(() => {
     if (isOnline && token && !isBootstrapping) {
       syncPendingOperations();
     }
-  }, [isBootstrapping, isOnline, token]);
+  }, [isBootstrapping, isOnline, syncPendingOperations, token]);
 
   const value = useMemo(
     () => ({
@@ -74,7 +74,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
       refreshQueueCount,
       syncPendingOperations
     }),
-    [isOnline, pendingOperations]
+    [isOnline, pendingOperations, refreshQueueCount, syncPendingOperations]
   );
 
   return <NetworkContext.Provider value={value}>{children}</NetworkContext.Provider>;
