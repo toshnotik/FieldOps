@@ -4,6 +4,12 @@
 
 FieldOps is a mobile-first React Native application for field service employees. It demonstrates a production-style Expo architecture with authentication, task management, map support, local app state, form validation, mock REST API calls, and tests.
 
+## Live Demo
+
+Web demo: [https://toshnotik.github.io/FieldOps/](https://toshnotik.github.io/FieldOps/)
+
+The demo is deployed from `main` by GitHub Actions. If Pages has not been enabled for the repository yet, set **Settings -> Pages -> Source** to **GitHub Actions** and re-run the `Deploy GitHub Pages` workflow.
+
 ## Screenshots
 
 | Login | Realtime task list |
@@ -78,6 +84,12 @@ Run web:
 
 ```bash
 npm run web
+```
+
+Build the GitHub Pages web bundle:
+
+```bash
+EXPO_BASE_URL=/FieldOps npm run build:web
 ```
 
 Run tests:
