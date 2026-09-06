@@ -8,8 +8,6 @@ FieldOps is a mobile-first React Native application for field service employees.
 
 Web demo: [https://toshnotik.github.io/FieldOps/](https://toshnotik.github.io/FieldOps/)
 
-The demo is deployed from `main` by GitHub Actions. If Pages has not been enabled for the repository yet, set **Settings -> Pages -> Source** to **GitHub Actions** and re-run the `Deploy GitHub Pages` workflow.
-
 ## Screenshots
 
 | Login | Realtime task list |
@@ -50,7 +48,7 @@ The demo is deployed from `main` by GitHub Actions. If Pages has not been enable
 
 ## Realtime, Offline, Notifications
 
-The backend is intentionally mocked, but the app demonstrates the production flow boundaries:
+The backend is intentionally mocked, but the app demonstrates production-style flow boundaries:
 
 - `src/shared/api/realtime.ts` exposes a WebSocket-like task event channel.
 - `src/providers/RealtimeProvider.tsx` connects after auth while the device is online, updates TanStack Query cache, and starts mock remote status simulation.
@@ -58,7 +56,7 @@ The backend is intentionally mocked, but the app demonstrates the production flo
 - `src/providers/NetworkProvider.tsx` watches NetInfo and replays queued operations when auth and connectivity are available.
 - `src/providers/NotificationsProvider.tsx` requests native notification permissions and schedules a local notification for remote status changes.
 
-To demo the flow:
+Demo flow:
 
 1. Sign in with the demo credentials below.
 2. Open the task list and wait for the green realtime banner.
@@ -84,12 +82,6 @@ Run web:
 
 ```bash
 npm run web
-```
-
-Build the GitHub Pages web bundle:
-
-```bash
-EXPO_BASE_URL=/FieldOps npm run build:web
 ```
 
 Run tests:
