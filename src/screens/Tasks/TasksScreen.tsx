@@ -17,7 +17,7 @@ const priorities: (TaskPriority | 'all')[] = ['all', 'low', 'medium', 'high'];
 export default function TasksScreen() {
   const filters = useAppStore((state) => state.taskFilters);
   const setTaskFilters = useAppStore((state) => state.setTaskFilters);
-  const { isOnline, pendingOperations } = useNetwork();
+  const { isOnline, pendingOperations, syncError } = useNetwork();
   const { colors } = useTheme();
 
   const query = useInfiniteQuery({
@@ -39,7 +39,11 @@ export default function TasksScreen() {
           ]}
         >
           <Text style={[styles.networkText, { color: colors.text }]}>
-            {isOnline ? 'Онлайн: статусы обновляются в реальном времени' : 'Офлайн: изменения будут синхронизированы позже'}
+            {syncError
+              ? `Не удалось синхронизировать изменения: ${pendingOperations}`
+              : isOnline
+                ? 'Онлайн: статусы обновляются в реальном времени'
+                : 'Офлайн: изменения будут синхронизированы позже'}
           </Text>
           {pendingOperations ? <Text style={[styles.networkCount, { backgroundColor: colors.warning }]}>{pendingOperations}</Text> : null}
         </View>

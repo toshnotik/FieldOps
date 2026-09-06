@@ -12,11 +12,14 @@ jest.mock('expo-router', () => ({
   }
 }));
 
+let mockNetworkState = {
+  isOnline: true,
+  pendingOperations: 0,
+  syncError: null as null | { remaining: number }
+};
+
 jest.mock('@/providers/NetworkProvider', () => ({
-  useNetwork: () => ({
-    isOnline: true,
-    pendingOperations: 0
-  })
+  useNetwork: () => mockNetworkState
 }));
 
 let queryClient: QueryClient;
@@ -37,6 +40,11 @@ function renderWithQueryClient() {
 
 describe('TaskFilters', () => {
   beforeEach(() => {
+    mockNetworkState = {
+      isOnline: true,
+      pendingOperations: 0,
+      syncError: null
+    };
     jest.spyOn(apiClient.tasks, 'getTasks').mockImplementation(async (filters: TaskFilters, page = 1) => ({
       items: initialTasks.filter((task) => filters.status === 'all' || task.status === filters.status),
       page,
@@ -65,5 +73,18 @@ describe('TaskFilters', () => {
         )
       );
     });
+  });
+
+  it('shows offline sync errors in the network banner', async () => {
+    mockNetworkState = {
+      isOnline: true,
+      pendingOperations: 3,
+      syncError: { remaining: 2 }
+    };
+
+    const { getByText } = renderWithQueryClient();
+
+    await waitFor(() => expect(getByText('Не удалось синхронизировать изменения: 3')).toBeTruthy());
+    await waitFor(() => expect(getByText('Плановое ТО вентиляции')).toBeTruthy());
   });
 });

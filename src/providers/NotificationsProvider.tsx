@@ -17,10 +17,14 @@ export function NotificationsProvider({ children }: PropsWithChildren) {
         return;
       }
 
-      const current = await Notifications.getPermissionsAsync();
+      try {
+        const current = await Notifications.getPermissionsAsync();
 
-      if (current.status !== 'granted') {
-        await Notifications.requestPermissionsAsync();
+        if (current.status !== 'granted') {
+          await Notifications.requestPermissionsAsync();
+        }
+      } catch (error) {
+        console.warn('Failed to request notification permissions', error);
       }
     }
 
@@ -35,11 +39,15 @@ export async function notifyTaskStatusChanged(title: string, statusLabel: string
     return;
   }
 
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Статус задачи обновлен',
-      body: `${title}: ${statusLabel}`
-    },
-    trigger: null
-  });
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Статус задачи обновлен',
+        body: `${title}: ${statusLabel}`
+      },
+      trigger: null
+    });
+  } catch (error) {
+    console.warn('Failed to schedule task status notification', error);
+  }
 }

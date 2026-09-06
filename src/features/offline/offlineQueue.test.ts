@@ -84,6 +84,18 @@ describe('offlineQueue', () => {
     ]);
   });
 
+  it('ignores invalid persisted queue data', async () => {
+    await AsyncStorage.setItem('fieldops.offlineQueue', JSON.stringify([{ id: 'op-1', type: 'unknown' }]));
+
+    await expect(getOfflineQueue()).resolves.toEqual([]);
+  });
+
+  it('ignores malformed persisted queue JSON', async () => {
+    await AsyncStorage.setItem('fieldops.offlineQueue', '{not-json');
+
+    await expect(getOfflineQueue()).resolves.toEqual([]);
+  });
+
   it('preserves the first failed operation and unprocessed tail during sync', async () => {
     await enqueueOfflineOperation({
       id: 'op-1',
@@ -107,10 +119,17 @@ describe('offlineQueue', () => {
       createdAt: '2026-08-20T10:02:00.000Z'
     });
 
-    await processOfflineQueue(async (operation) => {
-      if (operation.id === 'op-2') {
-        throw new Error('network failed');
-      }
+    await expect(
+      processOfflineQueue(async (operation) => {
+        if (operation.id === 'op-2') {
+          throw new Error('network failed');
+        }
+      })
+    ).resolves.toEqual({
+      processed: 1,
+      remaining: 2,
+      failedOperation: expect.objectContaining({ id: 'op-2' }),
+      error: 'network failed'
     });
 
     await expect(getOfflineQueue()).resolves.toEqual([
